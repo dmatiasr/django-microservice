@@ -4,12 +4,14 @@ from django.db.models import (
     Max
 )
 
+
 class Character(models.Model):
     """
         Character model,
         This class represents one character
     """
     slug_item = models.IntegerField(db_index=True, unique=True, null=False, default=0)
+
 
 class Score(models.Model):
     """

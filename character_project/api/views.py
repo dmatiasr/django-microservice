@@ -2,22 +2,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from .models import (
-    Character,
-    Score
+    Character
 )
 
-from django.db.models import (
-    Avg,
-    Max
+from .serializer import (
+    CharacterSerializer,
+    ScoreSerializer
 )
 
 import requests
 import json
-def index(request, id):
-
-    return Response("Hola "+ id)
-
-
+import traceback
+import logging
 
 class CharacterAPIView(APIView):
 
@@ -28,8 +24,8 @@ class CharacterAPIView(APIView):
         try:
             item = '{}'.format(kwargs.get('id', None))
             if item:
-                root_response = requests.get(url=self.api_resource+item)
 
+                root_response = requests.get(url=self.api_resource+item)
                 processed_payload = json.loads(root_response.content)
 
                 try:
@@ -48,7 +44,6 @@ class CharacterAPIView(APIView):
 
                     processed_payload['homeworld'] = homeworld_detail
 
-
                 try:
                     # Dado que es una lista, se toma como precondicion elegir el 1ero que exista.
                     specie_response = requests.get(url=json.loads(root_response.content)['species'][0])
@@ -59,22 +54,16 @@ class CharacterAPIView(APIView):
 
                 # Conexion a DB
                 try:
-                    print(item)
                     character = Character.objects.get(slug_item=int(item))
-                    print(character)
+
                 except Character.DoesNotExist:
                     processed_payload['average_rating'] = None
                     processed_payload['max_rating'] = None
 
                 else:
-                    try:
-                        avg = character.related_character_score.aggregate(Avg('score_field'))['score_field__avg']
-                        max_rating = character.related_character_score.aggregate(Max('score_field'))['score_field__max']
-                    except (AttributeError, KeyError):
-                        avg = 0
-                        max_rating = 0
-                    processed_payload['average_rating'] = avg if avg else 0
-                    processed_payload['max_rating'] = max_rating if max_rating else 0
+                    character_serialized = CharacterSerializer(instance=character)
+                    processed_payload['average_rating'] = character_serialized.data.get('avg', None)
+                    processed_payload['max_rating'] = character_serialized.data.get('max_score', None)
 
                 # Se eliminan campos no necesarios a informar.
                 try:
@@ -89,36 +78,38 @@ class CharacterAPIView(APIView):
             else:
                 processed_payload = {}
         except Exception:
+            logging.error("{}".format(traceback.format_exc()))
             return Response({}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(processed_payload, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         try:
-            item = '{0}'.format(*kwargs.get('id'))
+            item = '{}'.format(kwargs.get('id'))
 
             score = request.data.get('score', None)
 
             # score debe encontrarse entre 1 al 5
             if score and int(score) in range(1, 6):
-                try:
-                    current_character = Character.objects.get(slug_item=int(item))
-                except Character.DoesNotExist:
-                    new_char = Character.objects.create(slug_item=int(item))
-                    Score.objects.create(
-                        score_field=int(score) if score else 0,
-                        related_character=new_char
-                    )
-                else:
-                    Score.objects.create(
-                        score_field=int(score) if score else 0,
-                        related_character=current_character
-                    )
 
-                finally:
-                    return Response({}, status=status.HTTP_201_CREATED)
+                data = {
+                    'score': int(score),
+                    'related_character': int(item)
+                }
+                score_serialized = ScoreSerializer(data=data)
+                try:
+                    score_serialized.is_valid()
+                except Exception:
+                    return Response({}, status=status.HTTP_400_BAD_REQUEST)
+                score_serialized.save()
+                return Response(score_serialized.data, status=status.HTTP_201_CREATED)
+            elif not score:
+                return Response({'Error': 'missing "score" param'},
+                                status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({'Validation Error': 'score must be between 1 to 5'},
+                return Response({'Error': 'score must be between 1 to 5'},
                                 status=status.HTTP_202_ACCEPTED)
+
         except Exception:
+            logging.error("{}".format(traceback.format_exc()))
             return Response({}, status=status.HTTP_400_BAD_REQUEST)
