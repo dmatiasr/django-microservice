@@ -27,14 +27,12 @@ class CharacterSerializer(serializers.ModelSerializer):
             'max_score'
         )
 
-
     def get_avg(self, obj):
         try:
             return obj.related_character_score.aggregate(Avg('score_field'))['score_field__avg']
         except (AttributeError, KeyError):
             logging.info('{}'.format(traceback.format_exc()))
             return 0
-
 
     def get_max_score(self, obj):
         try:

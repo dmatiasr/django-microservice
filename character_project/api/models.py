@@ -29,8 +29,3 @@ class Score(models.Model):
                                           on_delete=models.CASCADE
                                           )
 
-    def get_average_rating(self):
-        return self.objects.all().aggregate(Avg('score_field'))
-
-    def get_max_rating(self):
-        return self.objects.aggregate(Max('score_field'))

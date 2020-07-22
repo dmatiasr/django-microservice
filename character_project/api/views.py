@@ -43,7 +43,6 @@ class CharacterAPIView(APIView):
                 except (AttributeError, KeyError, TypeError):
                     processed_payload['homeworld'] = {}
                 else:
-                    # Aqui habria que hacer un tratamiento de LOG de porqué falló.
 
                     homeworld_response = requests.get(url=homeworld_url)
                     homeworld_content = json.loads(homeworld_response.content)
@@ -62,7 +61,6 @@ class CharacterAPIView(APIView):
                 else:
                     processed_payload['species'] = json.loads(specie_response.content)['name']
 
-                # Conexion a DB
                 try:
                     character = Character.objects.get(slug_item=int(item))
 
