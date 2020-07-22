@@ -80,5 +80,6 @@ class ScoreSerializer(serializers.ModelSerializer):
             data.pop('related_character')
         except Exception:
             logging.error('{}'.format(traceback.format_exc()))
+            raise validators.ValidationError({'Error': 'data malformed'})
 
         return super(ScoreSerializer, self).to_internal_value(data)

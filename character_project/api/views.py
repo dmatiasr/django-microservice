@@ -1,6 +1,8 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.authentication import TokenAuthentication
+
 from .models import (
     Character
 )
@@ -15,8 +17,16 @@ import json
 import traceback
 import logging
 
-class CharacterAPIView(APIView):
 
+class CharacterAPIView(APIView):
+    """
+        CharacterAPIView class
+
+        Implements post and get methods to Character Model
+
+    """
+
+    authentication_classes = (TokenAuthentication,)
     api_resource = "https://swapi.dev/api/people/"
     lookup_url_kwarg = 'id'
 
