@@ -1,9 +1,9 @@
 # django-microservice
-## First steps
 
 
 ### How to install:
 #### docker-compose up --build 
+
 
 ### stop docker-compose and run:
 
